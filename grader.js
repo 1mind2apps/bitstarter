@@ -6,6 +6,8 @@ var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 
+var request = require('request');
+var content;
 var assertFileExists = function(infile) {
 	var instr = infile.toString();
 	if(!fs.existsSync(instr)) {
@@ -42,10 +44,18 @@ if(require.main == module) {
  program
 	.option('-c, --checks <check_file>', 'checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
 	.option('-F, --file <html_file>', 'index.html', clone(assertFileExists),HTMLFILE_DEFAULT)
+	.option('-u, --url <url_addy>', 'http://heroku.com')
 	.parse(process.argv);
+ 
+ if (program.url) {
+	request(program.url, function(err, reponse, body) {
+	content = cheerio.load(body);
+	});
+}
+ program.file = content;
  var checkJson = checkHtmlFile(program.file, program.checks);
  var outJson = JSON.stringify(checkJson, null, 4);
  console.log(outJson);
  } else {
-	exports.checkHtmlFile = checkHtmlFile;
+	exports.checkHtmlFile = checkHtmlFile
 }
