@@ -6,8 +6,8 @@ var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 
-var request = require('request');
-var content;
+
+var rest = require('restler');
 var assertFileExists = function(infile) {
 	var instr = infile.toString();
 	if(!fs.existsSync(instr)) {
@@ -24,6 +24,17 @@ var cheerioHtmlFile = function(htmlfile) {
 var loadChecks = function(checksfile) {
 	return JSON.parse(fs.readFileSync(checksfile));
 };
+
+ var checkURLFile = function(htmlfile, checksfile) {
+ $ = cheerio.load(htmlfile);
+ var checks = loadChecks(checksfile).sort();
+ var out = {};
+ for(var ii in checks) {
+	var present = $(checks[ii]).length > 0;
+	out[checks[ii]] = present;
+	}
+ return out;
+}; 
 
 var checkHtmlFile = function(htmlfile, checksfile) {
  $ = cheerioHtmlFile(htmlfile);
@@ -46,16 +57,20 @@ if(require.main == module) {
 	.option('-F, --file <html_file>', 'index.html', clone(assertFileExists),HTMLFILE_DEFAULT)
 	.option('-u, --url <url_addy>', 'http://heroku.com')
 	.parse(process.argv);
- 
+  
  if (program.url) {
-	request(program.url, function(err, reponse, body) {
-	content = cheerio.load(body);
-	});
-}
- program.file = content;
+	rest.get(program.url).on('complete', function(result) {
+	var checkJson0 = checkURLFile(result, program.checks);
+	var outJson0 = JSON.stringify(checkJson0, null, 4);
+	console.log(outJson0);
+});
+
+} else {
+
  var checkJson = checkHtmlFile(program.file, program.checks);
  var outJson = JSON.stringify(checkJson, null, 4);
  console.log(outJson);
- } else {
+ } 
+} else {
 	exports.checkHtmlFile = checkHtmlFile
 }
